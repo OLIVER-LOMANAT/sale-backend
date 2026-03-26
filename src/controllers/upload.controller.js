@@ -9,7 +9,6 @@ export const compressToTarget = async (inputBuffer, targetKB = 100) => {
 
   console.log(`Original width: ${originalWidth}px | Starting optimized compression...`);
 
-  // Smart width selection - bigger images get smaller starting width
   let width = originalWidth > 5500 ? 1280 :
               originalWidth > 3500 ? 1450 :
               originalWidth > 2500 ? 1600 : 
@@ -17,8 +16,7 @@ export const compressToTarget = async (inputBuffer, targetKB = 100) => {
 
   console.log(`Starting width: ${width}px`);
 
-  // Binary search for the HIGHEST quality possible
-  let low = 82;      // Increased minimum quality (was 80)
+  let low = 82;
   let high = 94;
   let bestBuffer = null;
   let bestQuality = 82;
@@ -50,19 +48,18 @@ export const compressToTarget = async (inputBuffer, targetKB = 100) => {
     if (resultBuffer.length <= targetBytes) {
       bestBuffer = resultBuffer;
       bestQuality = mid;
-      low = mid + 1;        // Try higher quality
+      low = mid + 1;
     } else {
       high = mid - 1;
     }
   }
 
   if (bestBuffer) {
-    console.log(`✅ Success → Quality ${bestQuality} | Size ${(bestBuffer.length / 1024).toFixed(1)}KB`);
+    console.log(`Success - Quality ${bestQuality} | Size ${(bestBuffer.length / 1024).toFixed(1)}KB`);
     return bestBuffer;
   }
 
-  // Final fallback - reduce width more aggressively and keep good quality
-  console.log("Still over target → reducing width further...");
+  console.log("Still over target reducing width further...");
   width = Math.floor(width * 0.82);
 
   const finalBuffer = await sharp(inputBuffer)
@@ -73,7 +70,7 @@ export const compressToTarget = async (inputBuffer, targetKB = 100) => {
       kernel: "lanczos3"
     })
     .webp({
-      quality: 86,                    // Good quality even in fallback
+      quality: 86,
       effort: 6,
       smartSubsample: true,
       mixed: true,
