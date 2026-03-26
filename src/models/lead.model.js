@@ -1,4 +1,3 @@
-// src/models/lead.model.js
 import mongoose from "mongoose";
 
 const leadSchema = new mongoose.Schema(
@@ -17,6 +16,11 @@ const leadSchema = new mongoose.Schema(
     email: String,
     website: String,
     notes: String,
+    status: {
+      type: String,
+      enum: ["On Going", "On Hold", "Pending", "Completed", "Canceled"],
+      default: "On Going",
+    },
     lead_source: {
       type: String,
       enum: ["admin_posted", "sales_person_posted"],

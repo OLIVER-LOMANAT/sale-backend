@@ -1,5 +1,6 @@
 import Assignment from "../models/assignment.model.js";
 import Lead from "../models/lead.model.js";
+import ContactAttempt from "../models/contactAttempt.model.js";
 
 // GET /assignments/my-assignments/
 export const getMyAssignments = async (req, res) => {
@@ -133,7 +134,24 @@ export const transitionAssignment = async (req, res) => {
 
     await assignment.save();
 
+    // Update lead status based on assignment state
     const lead = await Lead.findById(assignment.lead);
+    if (lead) {
+      if (new_state === "converted") {
+        lead.status = "Completed";
+        lead.is_active = false;
+      } else if (new_state === "lost") {
+        lead.status = "Canceled";
+        lead.is_active = false;
+      } else if (new_state === "in_progress" || new_state === "pitched") {
+        lead.status = "On Going";
+        lead.is_active = true;
+      } else {
+        lead.status = "On Going";
+        lead.is_active = true;
+      }
+      await lead.save();
+    }
 
     res.status(200).json({
       ...assignment.toObject(),
@@ -164,6 +182,88 @@ export const getAllAssignments = async (req, res) => {
     res.status(200).json({ count, results: assignments });
   } catch (error) {
     console.error("Error in getAllAssignments:", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+
+// GET /assignments/{id}/contact-attempts/
+export const getContactAttempts = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id.toString();
+
+    // Verify assignment belongs to this sales person
+    const assignment = await Assignment.findOne({
+      _id: id,
+      sales_person: userId,
+    });
+
+    if (!assignment) {
+      return res.status(404).json({ error: "Assignment not found" });
+    }
+
+    const contactAttempts = await ContactAttempt.find({ assignment: id })
+      .sort({ contacted_at: -1 });
+
+    res.status(200).json(contactAttempts);
+  } catch (error) {
+    console.error("Error in getContactAttempts:", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// POST /assignments/{id}/contact-attempts/
+export const createContactAttempt = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id.toString();
+    const {
+      channel,
+      status,
+      notes,
+      next_follow_up_at,
+      metadata,
+    } = req.body;
+
+    // Validate required fields
+    if (!channel || !status) {
+      return res.status(400).json({ error: "Channel and status are required" });
+    }
+
+    // Verify assignment belongs to this sales person
+    const assignment = await Assignment.findOne({
+      _id: id,
+      sales_person: userId,
+    });
+
+    if (!assignment) {
+      return res.status(404).json({ error: "Assignment not found" });
+    }
+
+    // Get lead info
+    const lead = await Lead.findById(assignment.lead);
+    if (!lead) {
+      return res.status(404).json({ error: "Lead not found" });
+    }
+
+    const contactAttempt = new ContactAttempt({
+      assignment: assignment._id,
+      lead: assignment.lead,
+      sales_person: userId,
+      sales_person_name: req.user.name,
+      channel,
+      status,
+      notes,
+      next_follow_up_at: next_follow_up_at || null,
+      metadata: metadata || {},
+    });
+
+    await contactAttempt.save();
+
+    res.status(201).json(contactAttempt);
+  } catch (error) {
+    console.error("Error in createContactAttempt:", error.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };

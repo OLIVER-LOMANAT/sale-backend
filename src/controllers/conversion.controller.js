@@ -56,17 +56,10 @@ export const getConversionById = async (req, res) => {
 // POST /conversions/create/
 export const createConversion = async (req, res) => {
   try {
-    const {
-      assignment_id,
-      visit_id,
-      subscription_amount,
-      commission_rate,
-      conversion_notes,
-    } = req.body;
-
+    const { assignment_id, visit_id, subscription_amount, commission_rate, conversion_notes } = req.body;
     const userId = req.user.id.toString();
 
-    // Verify assignment exists and belongs to user
+    // Find assignment
     const assignment = await Assignment.findOne({
       _id: assignment_id,
       sales_person: userId,
@@ -76,40 +69,46 @@ export const createConversion = async (req, res) => {
       return res.status(404).json({ error: "Assignment not found" });
     }
 
-    // Get lead info
-    const lead = await Lead.findById(assignment.lead);
+    if (assignment.state !== "pitched") {
+      return res.status(400).json({ error: "Assignment must be in pitched state to convert" });
+    }
 
-    // Calculate commission
-    const commissionAmount = subscription_amount && commission_rate
-      ? ((parseFloat(subscription_amount) * parseFloat(commission_rate)) / 100).toFixed(2)
-      : null;
-
-    const conversion = new Conversion({
-      assignment: assignment._id,
-      visit: visit_id || null,
-      sales_person: userId,
-      sales_person_name: req.user.name,
-      lead: assignment.lead,
-      lead_name: lead ? lead.name : null,
-      status: "pending",
-      subscription_amount: subscription_amount || null,
-      commission_rate: commission_rate || "10.00",
-      commission_amount: commissionAmount,
-      conversion_notes: conversion_notes || "",
-      converted_at: new Date(),
-    });
-
-    await conversion.save();
-
-    // Update assignment state to converted
+    // Update assignment to converted
     assignment.state = "converted";
     assignment.converted_at = new Date();
     await assignment.save();
 
+    // Update lead status
+    const lead = await Lead.findById(assignment.lead);
+    if (lead) {
+      lead.status = "Completed";
+      lead.is_active = false;
+      await lead.save();
+    }
+
+    // Create conversion record
+    const conversion = new Conversion({
+      assignment: assignment._id,
+      lead: assignment.lead,
+      sales_person: userId,
+      status: "pending",
+      subscription_amount: subscription_amount,
+      commission_rate: commission_rate || 10,
+      conversion_notes: conversion_notes,
+      converted_at: new Date(),
+    });
+
+    // Calculate commission
+    const amount = parseFloat(subscription_amount);
+    const rate = parseFloat(commission_rate || 10);
+    conversion.commission_amount = (amount * rate / 100).toString();
+
+    await conversion.save();
+
     res.status(201).json(conversion);
   } catch (error) {
     console.error("Error in createConversion:", error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 

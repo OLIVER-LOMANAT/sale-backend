@@ -40,18 +40,22 @@ export const startVisit = async (req, res) => {
     const userId = req.user.id.toString();
 
     let assignment = null;
+    let lead = null;
 
-    // Case 1: Using assignment_id (for admin leads that were claimed)
+
     if (assignment_id) {
       assignment = await Assignment.findOne({
         _id: assignment_id,
         sales_person: userId,
         state: "assigned",
       });
+      if (assignment) {
+        lead = await Lead.findById(assignment.lead);
+      }
     }
     // Case 2: Using lead_id (for leads you created yourself)
     else if (lead_id) {
-      const lead = await Lead.findOne({
+      lead = await Lead.findOne({
         _id: lead_id,
         created_by: userId,
         lead_source: "sales_person_posted",
@@ -84,14 +88,23 @@ export const startVisit = async (req, res) => {
       await assignment.save();
     }
 
-    const lead = await Lead.findById(assignment.lead);
+    // Get the lead if not already fetched
+    if (!lead && assignment) {
+      lead = await Lead.findById(assignment.lead);
+    }
 
+    // Create visit with lead contact information
     const visit = new Visit({
       assignment: assignment._id,
       lead: assignment.lead,
       sales_person: userId,
       sales_person_name: req.user.name,
       lead_name: lead ? lead.name : null,
+      // Copy contact information from lead
+      contact_name: lead ? lead.name : null,
+      contact_phone: lead ? lead.phone : null,
+      contact_email: lead ? lead.email : null,
+      contact_position: lead ? lead.contact_position : null,
       status: "in_progress",
       started_at: new Date(),
       check_in_location: latitude && longitude ? `${latitude},${longitude}` : null,
@@ -137,16 +150,19 @@ export const endVisit = async (req, res) => {
       return res.status(400).json({ error: "Visit is not in progress" });
     }
 
-    // Update visit
+    // Update visit - preserve existing contact info if not provided
     visit.status = "completed";
     visit.ended_at = new Date();
     visit.check_out_location = latitude && longitude ? `${latitude},${longitude}` : null;
     visit.notes = notes || visit.notes;
     visit.interest_level = interest_level;
-    visit.contact_name = contact_name;
-    visit.contact_phone = contact_phone;
-    visit.contact_email = contact_email;
-    visit.contact_position = contact_position;
+    
+    // Only update contact fields if provided, otherwise keep original from lead
+    if (contact_name) visit.contact_name = contact_name;
+    if (contact_phone) visit.contact_phone = contact_phone;
+    if (contact_email) visit.contact_email = contact_email;
+    if (contact_position) visit.contact_position = contact_position;
+    
     visit.follow_up_required = follow_up_required || false;
     visit.follow_up_date = follow_up_date || null;
 

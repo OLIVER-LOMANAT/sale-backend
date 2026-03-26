@@ -9,7 +9,7 @@ const assignmentSchema = new mongoose.Schema(
       required: true,
     },
     sales_person: {
-    type: String,  // changed from ObjectId
+    type: String, 
   },
     state: {
       type: String,
