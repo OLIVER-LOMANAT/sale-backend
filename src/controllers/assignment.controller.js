@@ -134,7 +134,6 @@ export const transitionAssignment = async (req, res) => {
 
     await assignment.save();
 
-    // Update lead status based on assignment state
     const lead = await Lead.findById(assignment.lead);
     if (lead) {
       if (new_state === "converted") {
@@ -160,28 +159,6 @@ export const transitionAssignment = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in transitionAssignment:", error.message);
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
-
-// GET /assignments/ (all - for future admin use)
-export const getAllAssignments = async (req, res) => {
-  try {
-    const { state, page = 1, limit = 10 } = req.query;
-
-    let query = {};
-    if (state) query.state = state;
-
-    const assignments = await Assignment.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
-
-    const count = await Assignment.countDocuments(query);
-
-    res.status(200).json({ count, results: assignments });
-  } catch (error) {
-    console.error("Error in getAllAssignments:", error.message);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -226,7 +203,7 @@ export const createContactAttempt = async (req, res) => {
       metadata,
     } = req.body;
 
-    // Validate required fields
+    // Validating required fields
     if (!channel || !status) {
       return res.status(400).json({ error: "Channel and status are required" });
     }

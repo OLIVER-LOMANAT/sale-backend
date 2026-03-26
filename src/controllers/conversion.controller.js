@@ -148,28 +148,3 @@ export const markConversionLost = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
-
-// GET /conversions/ (all - for future admin use)
-export const getAllConversions = async (req, res) => {
-  try {
-    const { status, page = 1, limit = 10 } = req.query;
-
-    let query = {};
-    if (status) query.status = status;
-
-    const conversions = await Conversion.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
-
-    const count = await Conversion.countDocuments(query);
-
-    res.status(200).json({
-      count,
-      results: conversions,
-    });
-  } catch (error) {
-    console.error("Error in getAllConversions:", error.message);
-    res.status(500).json({ error: "Internal server error" });
-  }
-};

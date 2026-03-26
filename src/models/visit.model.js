@@ -14,7 +14,7 @@ const visitSchema = new mongoose.Schema(
       required: true,
     },
     sales_person: {
-    type: String,  // changed from ObjectId
+    type: String,
     required: true,
   },
     sales_person_name: String,

@@ -8,12 +8,9 @@ import Conversion from "../models/conversion.model.js";
 
 dotenv.config();
 
-// ── Config ─────────────────────────────────────────────────────────────
-// Change this to your actual user ID from the auth service
 const SALES_PERSON_ID = "62";
 const SALES_PERSON_NAME = "Ruben Lipshutz";
 
-// ── Helpers ────────────────────────────────────────────────────────────
 const randomBetween = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
 const daysAgo = (n) => new Date(Date.now() - n * 86400000);
@@ -38,19 +35,17 @@ const businessNames = [
 
 const interestLevels = ["low", "medium", "high", "very_high"];
 
-// ── Seed ───────────────────────────────────────────────────────────────
+// Seed 
 async function seed() {
   await connectDB();
-  console.log("🌱 Starting seed...");
 
   // Clear existing data for this user
   await Lead.deleteMany({ created_by: SALES_PERSON_ID });
   await Assignment.deleteMany({ sales_person: SALES_PERSON_ID });
   await Visit.deleteMany({ sales_person: SALES_PERSON_ID });
   await Conversion.deleteMany({ sales_person: SALES_PERSON_ID });
-  console.log("🗑️  Cleared existing data");
 
-  // ── 1. Create Leads ──────────────────────────────────────────────────
+  //  Create Leads
   const leads = [];
   for (let i = 0; i < 15; i++) {
     const lead = await Lead.create({
@@ -69,12 +64,11 @@ async function seed() {
     });
     leads.push(lead);
   }
-  console.log(`✅ Created ${leads.length} leads`);
+  console.log(`Created ${leads.length} leads`);
 
-  // ── 2. Create Assignments ─────────────────────────────────────────────
+  // Create Assignments 
   const assignments = [];
 
-  // Mix of states across last 14 days
   const stateDistribution = [
     "assigned", "assigned", "assigned",
     "in_progress", "in_progress",
@@ -104,12 +98,11 @@ async function seed() {
     });
     assignments.push(assignment);
   }
-  console.log(`✅ Created ${assignments.length} assignments`);
+  console.log(`Created ${assignments.length} assignments`);
 
-  // ── 3. Create Visits ──────────────────────────────────────────────────
+  // Create Visits
   const visits = [];
 
-  // Create visits for pitched + converted + lost assignments
   const visitableAssignments = assignments.filter(a =>
     ["pitched", "converted", "lost"].includes(a.state)
   );
@@ -146,7 +139,6 @@ async function seed() {
     visits.push(visit);
   }
 
-  // Also create some in-progress visits
   const inProgressAssignments = assignments.filter(a => a.state === "in_progress");
   for (const assignment of inProgressAssignments) {
     const lead = leads.find(l => l._id.toString() === assignment.lead.toString());
@@ -165,9 +157,9 @@ async function seed() {
     visits.push(visit);
   }
 
-  console.log(`✅ Created ${visits.length} visits`);
+  console.log(`Created ${visits.length} visits`);
 
-  // ── 4. Create Conversions ─────────────────────────────────────────────
+  // Create Conversions
   const convertedAssignments = assignments.filter(a => a.state === "converted");
   const conversions = [];
 
@@ -195,10 +187,9 @@ async function seed() {
     });
     conversions.push(conversion);
   }
-  console.log(`✅ Created ${conversions.length} conversions`);
+  console.log(`Created ${conversions.length} conversions`);
 
-  // ── Summary ───────────────────────────────────────────────────────────
-  console.log("\n🎉 Seed complete!");
+  console.log("\n Seed complete!");
   console.log(`   Leads:       ${leads.length}`);
   console.log(`   Assignments: ${assignments.length}`);
   console.log(`   Visits:      ${visits.length}`);
@@ -210,6 +201,6 @@ async function seed() {
 }
 
 seed().catch(err => {
-  console.error("❌ Seed failed:", err);
+  console.error("Seed failed:", err);
   process.exit(1);
 });

@@ -13,7 +13,7 @@ const conversionSchema = new mongoose.Schema(
       ref: "Visit",
     },
     sales_person: {
-    type: String,  // changed from ObjectId
+    type: String,  
     required: true,
   },
     sales_person_name: String,

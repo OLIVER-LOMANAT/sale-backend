@@ -58,7 +58,7 @@ const contactAttemptSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes for faster queries
+// Indexing for faster queries
 contactAttemptSchema.index({ assignment: 1, contacted_at: -1 });
 contactAttemptSchema.index({ sales_person: 1, contacted_at: -1 });
 

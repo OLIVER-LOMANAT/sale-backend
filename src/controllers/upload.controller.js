@@ -58,8 +58,7 @@ export const compressToTarget = async (inputBuffer, targetKB = 100) => {
     console.log(`Success - Quality ${bestQuality} | Size ${(bestBuffer.length / 1024).toFixed(1)}KB`);
     return bestBuffer;
   }
-
-  console.log("Still over target reducing width further...");
+  
   width = Math.floor(width * 0.82);
 
   const finalBuffer = await sharp(inputBuffer)
